@@ -1,0 +1,138 @@
+# Project 1C - MLFQ Scheduler
+
+Before starting this project, a round robit scheduler was used.
+After the changes implemented in Project 1C, a MLFQ is used to schedule processes.
+
+## MLFQ Rules
+
+- Rule 1: If Priority(A) > Priority(B), A runs (B doesn’t).
+- Rule 2: If Priority(A) = Priority(B), A & B run in round-robin fashion using the quantum length of the given queue.
+- Rule 3: When a process enters the system, its starting queue is determined by its nice value (see starting queue nice range in the table below).
+- Rule 4: Once a process uses up its time allotment at a given level (regardless of how many times it has given up the CPU), its priority is reduced (i.e., it moves down one queue).
+- Rule 5: After every 60 ticks, all processes in the system are moved back to their starting queues (aka, priority boost).
+- Rule 6: Whenever the nice value of a process is updated (e.g., nice() system call), its queue level is also updated according to the table below. Note that this may result in the process being moved out of one queue and into another. In that case it should be enqueued onto the back of the new queue.
+
+## Notes
+
+Project completed solely by Patrick Demers.
+
+Starting code from Project 1B which was completed with Kyle Rooney.
+
+When a new nice value is set, the process' runtime is set to 0 and it is allowed to run for quanta of new queue. Implementation confirmed with Professor Tancreti.
+
+## Queue Implementation
+
+I followed the queue implementation suggested in the assignment specification.
+
+## Files Added
+For project 1C, there were a few files added to the project:
+- queue.c/queue.h - store the multi level feedback queue functions and types
+- user/test_1.c - test two cpu bound processes
+- user/test_2.c - test one io bound process and one cpu bound process
+- user/schedtest.c - combined test_1 and test_2
+
+
+# Logging Output
+
+The test outputs properly show the child processes being raised and lowered through the proper queues.
+
+$ schedtest
+```
+$ schedtest
+running test 1 (two cpu bound)
+
+parent pid: 3
+first child pid: 4
+second child pid: 5
+long running completed
+
+pid 4 started at 47 in queue Medium // starts out with pid 0
+pid 5 started at 47 in queue Medium // starts out with pid 0
+pid 4 started at 47 in queue Medium // when nice value was adjusted to -19, the queue was changed to high. it was then reduced to medium after completing quanta in HIGH (1 more tick)
+pid 5 started at 57 in queue Medium // when nice value was adjusted to -19, the queue was changed to high. it was then reduced to medium after completing quanta in HIGH (1 more tick)
+** priority boost at time 60 ** // boost all processes to queue based on nice value
+pid 4 started at 60 in queue High // nice value is -19 so starts out in high. run for 1 tick
+pid 5 started at 61 in queue High // nice value is -19 so starts out in high. run for 1 tick
+pid 4 started at 62 in queue Medium // reduced to medium since used quanta in high. run for 10 ticks
+pid 5 started at 72 in queue Medium // reduced to medium since used quanta in high. run for 10 ticks
+pid 4 started at 82 in queue Low // reduced to low since used quanta in medium. run for 15 ticks
+pid 5 started at 97 in queue Low // reduced to low since used quanta in medium. run for 15 ticks
+pid 4 started at 112 in queue Low // finishes execution
+pid 3 started at 112 in queue Medium // parent woken up since it was waiting. goes back to sleep while waiting for pid 5
+pid 5 started at 112 in queue Low // finishes execution
+pid 3 started at 118 in queue Medium // parent woken up since it was waiting. still in medium since didn't use time quanta
+
+
+running test 2 (one io bound, one cpu bound)
+
+parent pid: 3
+first child (io bound) pid: 6
+second child (cpu bound) pid: 7
+long running completed
+
+pid 6 started at 118 in queue Medium
+pid 7 started at 118 in queue Medium
+pid 6 started at 118 in queue Medium
+pid 7 started at 118 in queue Medium
+** priority boost at time 120 ** // boost all processes to queue based on nice value
+pid 6 started at 120 in queue High // nice value is -19 so starts out in high. does not exceed quanta
+pid 7 started at 120 in queue High // nice value is -19 so starts out in high. since pid 6 did not use quanta, the interrupt has not executed yet. time is the same
+pid 6 started at 121 in queue High // will stay in high throughout because never uses quanta
+pid 7 started at 121 in queue Medium // now in medium since it used full quanta. run for 10 ticks
+pid 6 started at 131 in queue High
+pid 7 started at 131 in queue Low // now in low since it used full quanta. run for 15 ticks
+pid 6 started at 146 in queue High
+pid 7 started at 146 in queue Low
+pid 6 started at 154 in queue High
+pid 3 started at 154 in queue Medium // return to the parent since both children are done
+```
+
+# Original README
+
+xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
+Version 6 (v6).  xv6 loosely follows the structure and style of v6,
+but is implemented for a modern RISC-V multiprocessor using ANSI C.
+
+ACKNOWLEDGMENTS
+
+xv6 is inspired by John Lions's Commentary on UNIX 6th Edition (Peer
+to Peer Communications; ISBN: 1-57398-013-7; 1st edition (June 14,
+2000)).  See also https://pdos.csail.mit.edu/6.828/, which provides
+pointers to on-line resources for v6.
+
+The following people have made contributions: Russ Cox (context switching,
+locking), Cliff Frey (MP), Xiao Yu (MP), Nickolai Zeldovich, and Austin
+Clements.
+
+We are also grateful for the bug reports and patches contributed by
+Takahiro Aoyagi, Silas Boyd-Wickizer, Anton Burtsev, Ian Chen, Dan
+Cross, Cody Cutler, Mike CAT, Tej Chajed, Asami Doi, eyalz800, Nelson
+Elhage, Saar Ettinger, Alice Ferrazzi, Nathaniel Filardo, flespark,
+Peter Froehlich, Yakir Goaron, Shivam Handa, Matt Harvey, Bryan Henry,
+jaichenhengjie, Jim Huang, Matúš Jókay, Alexander Kapshuk, Anders
+Kaseorg, kehao95, Wolfgang Keller, Jungwoo Kim, Jonathan Kimmitt,
+Eddie Kohler, Vadim Kolontsov, Austin Liew, l0stman, Pavan
+Maddamsetti, Imbar Marinescu, Yandong Mao, Matan Shabtay, Hitoshi
+Mitake, Carmi Merimovich, Mark Morrissey, mtasm, Joel Nider,
+OptimisticSide, Greg Price, Jude Rich, Ayan Shafqat, Eldar Sehayek,
+Yongming Shen, Fumiya Shigemitsu, Cam Tenny, tyfkda, Warren Toomey,
+Stephen Tu, Rafael Ubal, Amane Uehara, Pablo Ventura, Xi Wang, Keiichi
+Watanabe, Nicolas Wolovick, wxdao, Grant Wu, Jindong Zhang, Icenowy
+Zheng, ZhUyU1997, and Zou Chang Wei.
+
+The code in the files that constitute xv6 is
+Copyright 2006-2020 Frans Kaashoek, Robert Morris, and Russ Cox.
+
+ERROR REPORTS
+
+Please send errors and suggestions to Frans Kaashoek and Robert Morris
+(kaashoek,rtm@mit.edu).  The main purpose of xv6 is as a teaching
+operating system for MIT's 6.S081, so we are more interested in
+simplifications and clarifications than new features.
+
+BUILDING AND RUNNING XV6
+
+You will need a RISC-V "newlib" tool chain from
+https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
+riscv64-softmmu.  Once they are installed, and in your shell
+search path, you can run "make qemu".
